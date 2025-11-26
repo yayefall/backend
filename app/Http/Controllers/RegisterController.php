@@ -2,86 +2,79 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use Illuminate\Validation\ValidationException;
 
 class RegisterController extends Controller
 {
-    // 🔹 Lister les utilisateurs
+    // Liste tous les utilisateurs
     public function index()
     {
-        return response()->json([
-            'success' => true,
-            'data' => User::all()
-        ]);
+        $users = User::orderBy('id', 'desc')->paginate(10);
+        return response()->json($users);
     }
 
-    // 🔹 Ajouter un utilisateur
+    // Crée un nouvel utilisateur
     public function store(Request $request)
     {
-        $request->validate([
-            'name'      => 'required|string|max:255',
-            'username'  => 'required|string|max:255|unique:users',
-            'password'  => 'required|string|min:4',
-            'role'      => 'required|string',
-            'avatar'    => 'nullable|string'
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'username' => 'required|string|max:50|unique:users,username',
+            'password' => 'required|string|min:6',
+            'role' => 'required|string|in:admin,user',
+            'avatar' => 'nullable|string'
         ]);
 
         $user = User::create([
-            'name'      => $request->name,
-            'username'  => $request->username,
-            'password'  => Hash::make($request->password),
-            'role'      => $request->role,
-            'avatar'    => $request->avatar ?? ""
+            'name' => $validated['name'],
+            'username' => $validated['username'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
+            'avatar' => $validated['avatar'] ?? null,
         ]);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Utilisateur ajouté avec succès',
-            'data' => $user
-        ]);
+            'message' => 'Utilisateur créé avec succès',
+            'user' => $user
+        ], 201);
     }
 
-    // 🔹 Mettre à jour un utilisateur
+    // Met à jour un utilisateur
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
 
-        $request->validate([
-            'name'      => 'required|string|max:255',
-            'username'  => 'required|string|max:255|unique:users,username,' . $user->id,
-            'password'  => 'nullable|string|min:4',
-            'role'      => 'required|string',
-            'avatar'    => 'nullable|string'
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:100',
+            'username' => 'sometimes|string|max:50|unique:users,username,' . $id,
+            'password' => 'sometimes|string|min:6|nullable',
+            'role' => 'sometimes|string|in:admin,user',
+            'avatar' => 'nullable|string'
         ]);
 
-        $user->name = $request->name;
-        $user->username = $request->username;
-        $user->role = $request->role;
-
-        if (!empty($request->password)) {
-            $user->password = Hash::make($request->password);
+        if (!empty($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
         }
 
-        $user->avatar = $request->avatar ?? $user->avatar;
-
-        $user->save();
+        $user->update($validated);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Utilisateur modifié avec succès',
-            'data' => $user
+            'message' => 'Utilisateur mis à jour avec succès',
+            'user' => $user
         ]);
     }
 
-    // 🔹 Supprimer un utilisateur
+    // Supprime un utilisateur
     public function destroy($id)
     {
-        User::findOrFail($id)->delete();
+        $user = User::findOrFail($id);
+        $user->delete();
 
         return response()->json([
-            'success' => true,
             'message' => 'Utilisateur supprimé avec succès'
         ]);
     }

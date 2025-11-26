@@ -12,17 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
+        $table->id();
+        $table->string('name', 100);
+        $table->string('username', 50)->unique();
+        $table->string('password');
+        $table->enum('role', ['admin', 'user'])->default('user');
+        $table->longText('avatar')->nullable(); // Pour base64
+        $table->rememberToken();
+        $table->timestamps();
+});
 
-            $table->string('name', 100);
-            $table->string('username', 50)->unique();
-            $table->string('password');
-            $table->enum('role', ['admin', 'user'])->default('user');
-            $table->string('avatar')->nullable();
-
-            $table->rememberToken();   // facultatif mais utile
-            $table->timestamps();      // created_at / updated_at
-        });
     }
 
     /**
