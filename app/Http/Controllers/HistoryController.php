@@ -7,6 +7,32 @@ use Illuminate\Http\Request;
 
 class HistoryController extends Controller
 {
+
+
+public function exportAll(Request $request)
+{
+    $query = History::query();
+
+    if ($request->filled('table')) {
+        $query->where('table_name', $request->table);
+    }
+
+    if ($request->filled('user')) {
+        $query->where('username', 'like', '%' . $request->user . '%');
+    }
+
+    if ($request->filled('startDate')) {
+        $query->whereDate('created_at', '>=', $request->startDate);
+    }
+
+    if ($request->filled('endDate')) {
+        $query->whereDate('created_at', '<=', $request->endDate);
+    }
+
+    return $query->orderBy('created_at', 'desc')->get();
+}
+
+
     /**
      * Récupérer l'historique avec filtres et pagination
      */
